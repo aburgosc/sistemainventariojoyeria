@@ -1,0 +1,40 @@
+package cl.aburgosc.sistemainventariojoyeria.dao.impl;
+
+import cl.aburgosc.sistemainventariojoyeria.dao.DetalleVentaDAO;
+import cl.aburgosc.sistemainventariojoyeria.model.DetalleVenta;
+import cl.aburgosc.sistemainventariojoyeria.util.DBConnection;
+import cl.aburgosc.sistemainventariojoyeria.util.ResultSetMapper;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
+
+public class DetalleVentaDAOImpl extends BaseDAOImpl<DetalleVenta> implements DetalleVentaDAO {
+
+    public DetalleVentaDAOImpl() {
+        super(DetalleVenta.class);
+    }
+
+    @Override
+    public List<DetalleVenta> obtenerPorVenta(int idVenta) throws Exception {
+        String nombreTabla = obtenerNombreTabla(DetalleVenta.class);
+        String sql = "SELECT * FROM " + nombreTabla + " WHERE id_venta = ?";
+
+        List<DetalleVenta> detalles = new ArrayList<>();
+
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, idVenta);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    detalles.add(ResultSetMapper.map(rs, DetalleVenta.class));
+                }
+            }
+        }
+
+        return detalles;
+    }
+}

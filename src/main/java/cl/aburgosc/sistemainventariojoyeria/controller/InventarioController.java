@@ -5,10 +5,12 @@ import cl.aburgosc.sistemainventariojoyeria.service.CategoriaService;
 import cl.aburgosc.sistemainventariojoyeria.service.MetalService;
 import cl.aburgosc.sistemainventariojoyeria.service.ProductoLoteService;
 import cl.aburgosc.sistemainventariojoyeria.service.ProductoService;
+import cl.aburgosc.sistemainventariojoyeria.service.VentaService;
 import cl.aburgosc.sistemainventariojoyeria.service.impl.CategoriaServiceImpl;
 import cl.aburgosc.sistemainventariojoyeria.service.impl.MetalServiceImpl;
 import cl.aburgosc.sistemainventariojoyeria.service.impl.ProductoLoteServiceImpl;
 import cl.aburgosc.sistemainventariojoyeria.service.impl.ProductoServiceImpl;
+import cl.aburgosc.sistemainventariojoyeria.service.impl.VentaServiceImpl;
 import cl.aburgosc.sistemainventariojoyeria.ui.InventarioPanel;
 
 import javax.swing.*;
@@ -25,6 +27,7 @@ public class InventarioController {
     private final ProductoService productoService;
     private final ProductoLoteService productoLoteService;
     private final CategoriaService categoriaService;
+    private final VentaService ventaService;
     private final MetalService metalService;
     private final NumberFormat nf;
 
@@ -34,6 +37,7 @@ public class InventarioController {
         this.productoLoteService = new ProductoLoteServiceImpl();
         this.categoriaService = new CategoriaServiceImpl();
         this.metalService = new MetalServiceImpl();
+        this.ventaService = new VentaServiceImpl();
         nf = NumberFormat.getNumberInstance(new Locale.Builder().setLanguage("es").setRegion("CL").build());
 
         inicializar();
@@ -46,6 +50,7 @@ public class InventarioController {
         panel.getBtnEditar().addActionListener(e -> editarProducto());
         panel.getBtnEliminar().addActionListener(e -> eliminarProducto());
         panel.getBtnAgregarStock().addActionListener(e -> agregarStock());
+        panel.getBtnActualizarStock().addActionListener(e -> actualizarStock());
 
     }
 
@@ -173,6 +178,20 @@ public class InventarioController {
                 JOptionPane.showMessageDialog(panel, ex.getMessage());
             }
         }
+    }
+
+    private void actualizarStock() {
+        int fila = panel.getTablaProductos().getSelectedRow();
+        if (fila < 0) {
+            JOptionPane.showMessageDialog(panel, "Seleccione un producto para actualizar stock");
+            return;
+        }
+
+        int idProducto = (int) panel.getTablaProductos().getValueAt(fila, 0);
+        int stockDisponible = ventaService.obtenerStockTotal(idProducto) - ventaService.obtenerCantidadVendida(idProducto);
+
+        // Actualizar la columna de stock en la tabla (suponiendo que la columna 5 es stock)
+        panel.getTablaProductos().setValueAt(stockDisponible, fila, 5);
     }
 
     private boolean mostrarDialogoProducto(Producto p, String titulo) {

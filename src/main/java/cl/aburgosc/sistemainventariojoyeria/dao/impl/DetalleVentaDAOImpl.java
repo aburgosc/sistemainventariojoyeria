@@ -37,4 +37,19 @@ public class DetalleVentaDAOImpl extends BaseDAOImpl<DetalleVenta> implements De
 
         return detalles;
     }
+
+    @Override
+    public int obtenerCantidadVendida(int idProducto) throws Exception {
+        int total = 0;
+        String sql = "SELECT SUM(cantidad) FROM detalle_venta WHERE id_producto = ?";
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    total = rs.getInt(1);
+                }
+            }
+        }
+        return total;
+    }
 }

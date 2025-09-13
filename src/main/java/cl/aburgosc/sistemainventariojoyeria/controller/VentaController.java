@@ -10,6 +10,7 @@ import javax.swing.table.DefaultTableModel;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.*;
+import javax.swing.event.TableModelEvent;
 
 public class VentaController {
 
@@ -51,7 +52,39 @@ public class VentaController {
         panel.getBtnGuardarVenta().addActionListener(e -> guardarVenta());
         panel.getBtnLimpiar().addActionListener(e -> limpiarFormulario());
 
-        panel.getTablaDetalleVenta().getModel().addTableModelListener(e -> calcularTotales());
+        panel.getTablaDetalleVenta().getModel().addTableModelListener(e -> {
+            if (actualizandoTotales) {
+                return;
+            }
+
+            if (e.getColumn() == 3 || e.getColumn() == TableModelEvent.ALL_COLUMNS) {
+                DefaultTableModel model = (DefaultTableModel) panel.getTablaDetalleVenta().getModel();
+                actualizandoTotales = true;
+
+                for (int i = 0; i < model.getRowCount(); i++) {
+                    int idProducto = (int) model.getValueAt(i, 0);
+                    int cantidadIngresada = (int) model.getValueAt(i, 3);
+                    int stockDisponible;
+                    try {
+                        stockDisponible = ventaService.obtenerStockTotal(idProducto);
+                    } catch (Exception ex) {
+                        mostrarError(ex);
+                        continue;
+                    }
+
+                    if (cantidadIngresada > stockDisponible) {
+                        model.setValueAt(stockDisponible, i, 3);
+                        JOptionPane.showMessageDialog(panel,
+                                "La cantidad ingresada excede el stock disponible (" + stockDisponible + ").",
+                                "Stock insuficiente",
+                                JOptionPane.WARNING_MESSAGE);
+                    }
+                }
+
+                calcularTotales();
+                actualizandoTotales = false;
+            }
+        });
     }
 
     private void inicializarAutocomplete() {
@@ -140,31 +173,52 @@ public class VentaController {
         }
 
         DefaultTableModel model = (DefaultTableModel) panel.getTablaDetalleVenta().getModel();
+        int stockDisponible;
+        try {
+            stockDisponible = ventaService.obtenerStockTotal(producto.getId());
+        } catch (Exception e) {
+            mostrarError(e);
+            return;
+        }
 
-        // Verificar si ya existe
+        // Verificar si ya existe en la tabla
         for (int i = 0; i < model.getRowCount(); i++) {
             if ((int) model.getValueAt(i, 0) == producto.getId()) {
                 int cantidadActual = (int) model.getValueAt(i, 3);
-                model.setValueAt(cantidadActual + 1, i, 3);
-                calcularTotales();
+                if (cantidadActual < stockDisponible) {
+                    model.setValueAt(cantidadActual + 1, i, 3);
+                    calcularTotales();
+                } else {
+                    JOptionPane.showMessageDialog(panel,
+                            "No hay stock suficiente para agregar más de este producto.",
+                            "Stock insuficiente",
+                            JOptionPane.WARNING_MESSAGE);
+                }
                 return;
             }
         }
 
-        try {
-            BigDecimal precio = ventaService.obtenerPrecioProducto(producto.getId());
-            model.addRow(new Object[]{
-                producto.getId(),
-                producto.getNombre(),
-                precio,
-                1,
-                precio
-            });
-        } catch (Exception e) {
-            mostrarError(e);
+        // Agregar nuevo producto si hay stock
+        if (stockDisponible > 0) {
+            try {
+                BigDecimal precio = ventaService.obtenerPrecioProducto(producto.getId());
+                model.addRow(new Object[]{
+                    producto.getId(),
+                    producto.getNombre(),
+                    precio,
+                    1,
+                    precio
+                });
+            } catch (Exception e) {
+                mostrarError(e);
+            }
+            calcularTotales();
+        } else {
+            JOptionPane.showMessageDialog(panel,
+                    "No hay stock disponible para este producto.",
+                    "Stock insuficiente",
+                    JOptionPane.WARNING_MESSAGE);
         }
-
-        calcularTotales();
     }
 
     private void quitarProductoDelDetalle() {
@@ -261,6 +315,8 @@ public class VentaController {
         model.setRowCount(0);
         panel.getLblSubtotal().setText("Subtotal: $0,00");
         panel.getLblTotal().setText("Total: $0,00");
+        // Recargar los productos disponibles
+        cargarProductos();
     }
 
     private void mostrarError(Exception ex) {

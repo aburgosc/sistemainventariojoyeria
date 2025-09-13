@@ -27,7 +27,7 @@ public class InventarioPanel extends JPanel {
     private JTable tablaProductos = null;
     private final DefaultTableModel modeloTabla;
     private final JTextField txtBuscar;
-    private final JButton btnAgregar, btnEditar, btnEliminar, btnAgregarStock;
+    private final JButton btnAgregar, btnEditar, btnEliminar, btnAgregarStock, btnActualizarStock;
     private final NumberFormat nf;
 
     public InventarioPanel() {
@@ -44,12 +44,14 @@ public class InventarioPanel extends JPanel {
         btnEditar = new JButton("Editar");
         btnEliminar = new JButton("Eliminar");
         btnAgregarStock = new JButton("Agregar Stock");
+        btnActualizarStock = new JButton("Actualizar Stock");
 
         panelSuperior.add(txtBuscar);
         panelSuperior.add(btnAgregar);
         panelSuperior.add(btnEditar);
         panelSuperior.add(btnEliminar);
         panelSuperior.add(btnAgregarStock);
+        panelSuperior.add(btnActualizarStock);
 
         add(panelSuperior, BorderLayout.NORTH);
 
@@ -123,6 +125,10 @@ public class InventarioPanel extends JPanel {
 
     public JButton getBtnAgregarStock() {
         return btnAgregarStock;
+    }
+
+    public JButton getBtnActualizarStock() {
+        return btnActualizarStock;
     }
 
     public void cargarProductos(List<Producto> productos, List<Categoria> categorias, List<Metal> metales) {

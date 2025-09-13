@@ -8,7 +8,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-
 public class DBConnection {
 
     private static final String DB_NAME = "sistemainventario";

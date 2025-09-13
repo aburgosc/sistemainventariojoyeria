@@ -11,4 +11,6 @@ public interface DetalleVentaDAO extends BaseDAO<DetalleVenta> {
 
     List<DetalleVenta> obtenerPorVenta(int id) throws Exception;
 
+    int obtenerCantidadVendida(int idProducto) throws Exception;
+
 }

@@ -1,6 +1,7 @@
 package cl.aburgosc.sistemainventariojoyeria.service.impl;
 
 import cl.aburgosc.sistemainventariojoyeria.dao.VentaDAO;
+import cl.aburgosc.sistemainventariojoyeria.dao.impl.DetalleVentaDAOImpl;
 import cl.aburgosc.sistemainventariojoyeria.dao.impl.VentaDAOImpl;
 import cl.aburgosc.sistemainventariojoyeria.exception.ServiceException;
 import cl.aburgosc.sistemainventariojoyeria.model.DetalleVenta;
@@ -107,6 +108,26 @@ public class VentaServiceImpl extends BaseServiceImpl<Venta> implements VentaSer
                 return lote.getPrecioVenta();
             }
         }
-        return BigDecimal.ZERO; // fallback si no hay stock
+        return BigDecimal.ZERO;
     }
+
+    @Override
+    public int obtenerStockTotal(int idProducto) {
+        try {
+            return loteService.obtenerStockTotal(idProducto);
+        } catch (Exception ex) {
+            return 0;
+        }
+
+    }
+
+    @Override
+    public int obtenerCantidadVendida(int idProducto) {
+        try {
+            return new DetalleVentaDAOImpl().obtenerCantidadVendida(idProducto);
+        } catch (Exception ex) {
+            return 0;
+        }
+    }
+
 }

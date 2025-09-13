@@ -11,4 +11,8 @@ public interface VentaService extends BaseService<Venta> {
 
     public List<Venta> obtenerPorCliente(int idCliente);
 
+    public int obtenerStockTotal(int idProducto);
+
+    int obtenerCantidadVendida(int idProducto);
+
 }

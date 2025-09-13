@@ -91,7 +91,7 @@ public class ClienteController {
                 model.addRow(new Object[]{
                     v.getId(),
                     v.getFecha(),
-                    "$" + nf.format(v.getTotal()) // <- formato con separador de miles
+                    "$" + nf.format(v.getTotal())
                 });
             }
         } catch (Exception ex) {

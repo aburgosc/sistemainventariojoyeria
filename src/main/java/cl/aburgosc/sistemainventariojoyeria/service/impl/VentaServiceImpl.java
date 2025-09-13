@@ -59,7 +59,16 @@ public class VentaServiceImpl extends BaseServiceImpl<Venta> implements VentaSer
     @Override
     public List<Venta> obtenerPorCliente(int idCliente) {
         try {
-            return ((VentaDAO) dao).obtenerPorCliente(idCliente);
+            List<Venta> ventas = ((VentaDAO) dao).obtenerPorCliente(idCliente);
+
+            for (Venta venta : ventas) {
+                BigDecimal subtotal = venta.getTotal();
+                if (subtotal != null) {
+                    BigDecimal totalConIVA = aplicarIVA(subtotal);
+                    venta.setTotal(totalConIVA);
+                }
+            }
+            return ventas;
         } catch (Exception ex) {
             ex.printStackTrace();
             return List.of();

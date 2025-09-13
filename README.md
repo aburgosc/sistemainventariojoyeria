@@ -15,7 +15,7 @@ Aplicación de escritorio para administrar:
 
 - **Productos y lotes**: control de stock, precios y costos.
 - **Clientes**: registro, validación y búsqueda.
-- **Ventas**: asignación de lotes según stock disponible y control FIFO.
+- **Ventas**: asignación de lotes según stock disponible y control.
 - **Movimientos de stock**: historial de ingresos y salidas de productos.
 
 Diseñado con **arquitectura MVC**, principios de **Clean Code** y **SOLID**, con separación de capas: modelos (VO), DAO, servicios, controladores y vistas.
@@ -26,7 +26,7 @@ Diseñado con **arquitectura MVC**, principios de **Clean Code** y **SOLID**, co
 
 - **Lenguaje:** Java 21  
 - **Base de datos:** PostgreSQL 16  
-- **UI:** Java Swing con componentes reutilizables  
+- **UI:** Java Swing  
 - **Conexión a DB:** JDBC con **HikariCP (Connection Pooling)**  
 - **Gestión de dependencias:** Maven  
 - **IDE recomendado:** NetBeans  

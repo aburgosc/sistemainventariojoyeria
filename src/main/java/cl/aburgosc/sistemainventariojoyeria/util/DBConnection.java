@@ -12,7 +12,7 @@ public class DBConnection {
 
     private static final String DB_NAME = "sistemainventario";
     private static final String DB_USER = "postgres";
-    private static final String DB_PASS = "sadie666";
+    private static final String DB_PASS = "password";
     private static final String DB_HOST = "localhost";
     private static final int DB_PORT = 5432;
 

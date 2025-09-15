@@ -91,15 +91,25 @@ El sistema crea automáticamente la base de datos sistemainventario si no existe
 - Estructura del Proyecto
 
 ```
-SistemaInventarioJoyeria/
-├─ controller/       # Controladores de la aplicación
-├─ dao/              # Interfaces DAO y sus implementaciones
-├─ exception/        # Clases de excepciones (DAOException, ServiceException)
-├─ model/            # Clases de entidad (Cliente, Producto, Lote, Stock, MovimientoStock)
-├─ service/          # Interfaces de servicios y sus implementaciones
-├─ ui/               # Vistas Java Swing
-├─ util/             # Utilidades (DBConnection, DBInitializer, ResultSetMapper)
-├─ SistemaInventarioJoyeria.java # Clase principal con método main
+SistemaInventarioJoyeria/              # Carpeta raíz del proyecto
+│   SistemaInventarioJoyeria.java      # Clase principal con método main
+│
+├───controller/                        # Controladores de la aplicación
+├───dao/                               # Interfaces DAO
+│   └───impl/                          # Implementaciones de DAO
+├───exception/                         # Excepciones personalizadas (DAOException, ServiceException)
+├───model/                              # Clases de entidad (Cliente, Producto, Lote, Stock, MovimientoStock)
+├───service/                            # Interfaces de servicios
+│   └───impl/                           # Implementaciones de servicios
+├───ui/                                 # Vistas Java Swing
+│   ├───dto/                            # Objetos de transferencia de datos
+│   │   └───reports/                    # DTOs específicos para reportes
+│   ├───panel/                          # Paneles Swing
+│   ├───tablecellrenderer/              # Renderers personalizados para JTable
+│   ├───tablemodel/                     # Modelos personalizados para JTable
+│   └───util/                           # Utilidades para UI
+└───util/                               # Utilidades generales (DBConnection, DBInitializer, FacturaPDFGenerator, etc.)
+
 ```
 
 - DAO: Acceso a base de datos con HikariCP.

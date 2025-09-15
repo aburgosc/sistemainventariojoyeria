@@ -8,6 +8,11 @@
 **Sistema de escritorio desarrollado en Java 21 y PostgreSQL 16 para la gestión integral de inventario y ventas de una joyería.**
 
 ---
+## Descarga el **JAR ejecutable** listo para usar con todas las dependencias incluidas:
+
+[![Descargar JAR](https://img.shields.io/badge/Download-JAR-blue?logo=java&logoColor=white)](https://github.com/aburgosc/sistemainventariojoyeria/releases/download/v1.0/SistemaInventarioJoyeria-1.0-SNAPSHOT.jar)
+
+---
 
 ## Descripción
 

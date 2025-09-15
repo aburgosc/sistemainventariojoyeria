@@ -64,9 +64,19 @@ git clone https://github.com/tu-usuario/SistemaInventarioJoyeria.git
 cd SistemaInventarioJoyeria
 
 ```
+
+Las configuraciones de la base de datos estan en este fichero DBConnection.java las cuales se deben tener en cuenta al compilar, las tablas y todo lo necesario se creará automaticamente:
+```java
+    private static final String DB_NAME = "sistemainventario";
+    private static final String DB_USER = "postgres";
+    private static final String DB_PASS = "password";
+    private static final String DB_HOST = "localhost";
+    private static final int DB_PORT = 5432;
+```
 - Compilar y generar el JAR usando Maven:
 
 ```
+mvn clean compile
 mvn clean package
 ```
 

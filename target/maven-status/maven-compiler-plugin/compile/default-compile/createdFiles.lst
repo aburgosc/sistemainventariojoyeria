@@ -18,6 +18,7 @@ cl\aburgosc\sistemainventariojoyeria\model\Metal.class
 cl\aburgosc\sistemainventariojoyeria\dao\CategoriaDAO.class
 cl\aburgosc\sistemainventariojoyeria\util\ResultSetMapper.class
 cl\aburgosc\sistemainventariojoyeria\controller\VentaController$SimpleDocumentListener.class
+cl\aburgosc\sistemainventariojoyeria\dao\impl\ProductoDAOImpl$ParamSetter.class
 cl\aburgosc\sistemainventariojoyeria\dao\impl\DetalleVentaDAOImpl.class
 cl\aburgosc\sistemainventariojoyeria\controller\InventarioController.class
 cl\aburgosc\sistemainventariojoyeria\service\impl\MetalServiceImpl.class

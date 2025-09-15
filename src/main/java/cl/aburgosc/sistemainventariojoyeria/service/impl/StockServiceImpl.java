@@ -1,5 +1,7 @@
 package cl.aburgosc.sistemainventariojoyeria.service.impl;
 
+import java.sql.Timestamp;
+
 import cl.aburgosc.sistemainventariojoyeria.dao.impl.StockDAOImpl;
 import cl.aburgosc.sistemainventariojoyeria.model.Stock;
 import cl.aburgosc.sistemainventariojoyeria.service.StockService;
@@ -42,7 +44,7 @@ public class StockServiceImpl extends BaseServiceImpl<Stock> implements StockSer
         }
 
         stock.setCantidadDisponible(disponible - cantidadSolicitada);
-        stock.setUltimaActualizacion(new java.sql.Timestamp(System.currentTimeMillis()));
+        stock.setUltimaActualizacion(new Timestamp(System.currentTimeMillis()));
         dao.actualizar(stock);
     }
 }

@@ -12,7 +12,7 @@ public class DBConnection {
 
     private static final String DB_NAME = "sistemainventario";
     private static final String DB_USER = "postgres";
-    private static final String DB_PASS = "password";
+    private static final String DB_PASS = "sadie666";
     private static final String DB_HOST = "localhost";
     private static final int DB_PORT = 5432;
 
@@ -20,7 +20,6 @@ public class DBConnection {
 
     static {
         try {
-            // 1. Crear la base de datos si no existe
             String urlPostgres = String.format("jdbc:postgresql://%s:%d/postgres", DB_HOST, DB_PORT);
             try (Connection conn = DriverManager.getConnection(urlPostgres, DB_USER, DB_PASS); Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE DATABASE " + DB_NAME);
@@ -30,7 +29,6 @@ public class DBConnection {
                 }
             }
 
-            // 2. Configurar HikariCP para la base de datos
             HikariConfig config = new HikariConfig();
             config.setJdbcUrl(String.format("jdbc:postgresql://%s:%d/%s", DB_HOST, DB_PORT, DB_NAME));
             config.setUsername(DB_USER);

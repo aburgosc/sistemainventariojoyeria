@@ -1,5 +1,7 @@
 package cl.aburgosc.sistemainventariojoyeria.model;
 
+import java.sql.Timestamp;
+
 import cl.aburgosc.sistemainventariojoyeria.util.DBColumn;
 import cl.aburgosc.sistemainventariojoyeria.util.DBTable;
 
@@ -20,7 +22,7 @@ public class MovimientoStock extends ObjetoBase {
     private int cantidad;
 
     @DBColumn(nombre = "fecha")
-    private java.sql.Timestamp fecha;
+    private Timestamp fecha;
 
     @DBColumn(nombre = "referencia")
     private String referencia;
@@ -52,11 +54,11 @@ public class MovimientoStock extends ObjetoBase {
         this.cantidad = cantidad;
     }
 
-    public java.sql.Timestamp getFecha() {
+    public Timestamp getFecha() {
         return fecha;
     }
 
-    public void setFecha(java.sql.Timestamp fecha) {
+    public void setFecha(Timestamp fecha) {
         this.fecha = fecha;
     }
 

@@ -1,349 +1,389 @@
 package cl.aburgosc.sistemainventariojoyeria.controller;
 
-import cl.aburgosc.sistemainventariojoyeria.model.*;
-import cl.aburgosc.sistemainventariojoyeria.service.*;
-import cl.aburgosc.sistemainventariojoyeria.service.impl.*;
-import cl.aburgosc.sistemainventariojoyeria.ui.VentaPanel;
-
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.io.File;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.text.NumberFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.event.TableModelEvent;
+import javax.swing.table.DefaultTableModel;
+
+import cl.aburgosc.sistemainventariojoyeria.model.Cliente;
+import cl.aburgosc.sistemainventariojoyeria.model.DetalleVenta;
+import cl.aburgosc.sistemainventariojoyeria.model.Producto;
+import cl.aburgosc.sistemainventariojoyeria.model.Venta;
+import cl.aburgosc.sistemainventariojoyeria.service.ClienteService;
+import cl.aburgosc.sistemainventariojoyeria.service.ProductoService;
+import cl.aburgosc.sistemainventariojoyeria.service.impl.ClienteServiceImpl;
+import cl.aburgosc.sistemainventariojoyeria.service.impl.ProductoServiceImpl;
+import cl.aburgosc.sistemainventariojoyeria.service.impl.VentaServiceImpl;
+import cl.aburgosc.sistemainventariojoyeria.ui.panel.VentaPanel;
+import cl.aburgosc.sistemainventariojoyeria.util.FacturaPDFGenerator;
 
 public class VentaController {
 
-    private final VentaPanel panel;
-    private final ClienteService clienteService;
-    private final ProductoService productoService;
-    private final VentaServiceImpl ventaService;
+	private final VentaPanel panel;
+	private final ClienteService clienteService;
+	private final ProductoService productoService;
+	private final VentaServiceImpl ventaService;
 
-    private Cliente clienteSeleccionado;
-    private List<Producto> productosDisponiblesList = new ArrayList<>();
-    private List<Cliente> clientesDisponiblesList = new ArrayList<>();
-    private final Map<String, Producto> mapaProductos = new HashMap<>();
-    private final NumberFormat nf;
+	private Cliente clienteSeleccionado;
+	private List<Producto> productosDisponiblesList = new ArrayList<>();
+	private List<Cliente> clientesDisponiblesList = new ArrayList<>();
+	private final Map<String, Producto> mapaProductos = new HashMap<>();
+	private final NumberFormat nf;
 
-    private final JPopupMenu popupClientes = new JPopupMenu();
-    private boolean actualizandoTotales = false;
+	private final JPopupMenu popupClientes = new JPopupMenu();
+	private boolean actualizandoTotales = false;
 
-    public VentaController(VentaPanel panel) {
-        this.panel = panel;
-        this.clienteService = new ClienteServiceImpl();
-        this.productoService = new ProductoServiceImpl();
-        this.ventaService = new VentaServiceImpl();
+	public VentaController(VentaPanel panel) {
+		this.panel = panel;
+		this.clienteService = new ClienteServiceImpl();
+		this.productoService = new ProductoServiceImpl();
+		this.ventaService = new VentaServiceImpl();
 
-        Locale cl = new Locale.Builder().setLanguage("es").setRegion("CL").build();
-        this.nf = NumberFormat.getNumberInstance(cl);
-        nf.setMinimumFractionDigits(0);
-        nf.setMaximumFractionDigits(0);
+		Locale cl = new Locale.Builder().setLanguage("es").setRegion("CL").build();
+		this.nf = NumberFormat.getNumberInstance(cl);
+		nf.setMinimumFractionDigits(0);
+		nf.setMaximumFractionDigits(0);
 
-        inicializar();
-    }
+		inicializar();
+	}
 
-    private void inicializar() {
-        cargarClientes();
-        cargarProductos();
-        inicializarAutocomplete();
+	private void inicializar() {
+		cargarClientes();
+		cargarProductos();
+		inicializarAutocomplete();
 
-        panel.getBtnAgregarProducto().addActionListener(e -> agregarProductoAlDetalle());
-        panel.getBtnQuitarProducto().addActionListener(e -> quitarProductoDelDetalle());
-        panel.getBtnGuardarVenta().addActionListener(e -> guardarVenta());
-        panel.getBtnLimpiar().addActionListener(e -> limpiarFormulario());
+		panel.getBtnAgregarProducto().addActionListener(e -> agregarProductoAlDetalle());
+		panel.getBtnQuitarProducto().addActionListener(e -> quitarProductoDelDetalle());
+		panel.getBtnGuardarVenta().addActionListener(e -> guardarVenta());
+		panel.getBtnLimpiar().addActionListener(e -> limpiarFormulario());
 
-        panel.getTablaDetalleVenta().getModel().addTableModelListener(e -> {
-            if (actualizandoTotales) {
-                return;
-            }
+		panel.getTablaDetalleVenta().getModel().addTableModelListener(e -> {
+			if (actualizandoTotales) {
+				return;
+			}
 
-            if (e.getColumn() == 3 || e.getColumn() == TableModelEvent.ALL_COLUMNS) {
-                DefaultTableModel model = (DefaultTableModel) panel.getTablaDetalleVenta().getModel();
-                actualizandoTotales = true;
+			if (e.getColumn() == 3 || e.getColumn() == TableModelEvent.ALL_COLUMNS) {
+				DefaultTableModel model = (DefaultTableModel) panel.getTablaDetalleVenta().getModel();
+				actualizandoTotales = true;
 
-                for (int i = 0; i < model.getRowCount(); i++) {
-                    int idProducto = (int) model.getValueAt(i, 0);
-                    int cantidadIngresada = (int) model.getValueAt(i, 3);
-                    int stockDisponible;
-                    try {
-                        stockDisponible = ventaService.obtenerStockTotal(idProducto);
-                    } catch (Exception ex) {
-                        mostrarError(ex);
-                        continue;
-                    }
+				for (int i = 0; i < model.getRowCount(); i++) {
+					int idProducto = (int) model.getValueAt(i, 0);
+					int cantidadIngresada = (int) model.getValueAt(i, 3);
+					int stockDisponible;
+					try {
+						stockDisponible = ventaService.obtenerStockTotal(idProducto);
+					} catch (Exception ex) {
+						mostrarError(ex);
+						continue;
+					}
 
-                    if (cantidadIngresada > stockDisponible) {
-                        model.setValueAt(stockDisponible, i, 3);
-                        JOptionPane.showMessageDialog(panel,
-                                "La cantidad ingresada excede el stock disponible (" + stockDisponible + ").",
-                                "Stock insuficiente",
-                                JOptionPane.WARNING_MESSAGE);
-                    }
-                }
+					if (cantidadIngresada > stockDisponible) {
+						model.setValueAt(stockDisponible, i, 3);
+						JOptionPane.showMessageDialog(panel,
+								"La cantidad ingresada excede el stock disponible (" + stockDisponible + ").",
+								"Stock insuficiente", JOptionPane.WARNING_MESSAGE);
+					}
+				}
 
-                calcularTotales();
-                actualizandoTotales = false;
-            }
-        });
-    }
+				calcularTotales();
+				actualizandoTotales = false;
+			}
+		});
+	}
 
-    private void inicializarAutocomplete() {
-        JTextField txtCliente = panel.getTxtCliente();
-        popupClientes.setFocusable(false);
+	private void inicializarAutocomplete() {
+		JTextField txtCliente = panel.getTxtCliente();
+		popupClientes.setFocusable(false);
 
-        txtCliente.getDocument().addDocumentListener(new SimpleDocumentListener() {
-            @Override
-            public void onChange() {
-                SwingUtilities.invokeLater(() -> {
-                    String texto = txtCliente.getText().trim().toLowerCase();
-                    popupClientes.setVisible(false);
-                    clienteSeleccionado = null;
+		txtCliente.getDocument().addDocumentListener(new SimpleDocumentListener() {
+			@Override
+			public void onChange() {
+				SwingUtilities.invokeLater(() -> {
+					String texto = txtCliente.getText().trim().toLowerCase();
 
-                    if (!texto.isEmpty()) {
-                        List<Cliente> filtrados = new ArrayList<>();
-                        for (Cliente c : clientesDisponiblesList) {
-                            String nombreCompleto = (c.getNombre() + " " + c.getApellido()).toLowerCase();
-                            if (nombreCompleto.contains(texto)) {
-                                filtrados.add(c);
-                            }
-                        }
+					if (clienteSeleccionado != null) {
+						String nombreRut = (clienteSeleccionado.getNombre() + " " + clienteSeleccionado.getApellido()
+								+ " (" + clienteSeleccionado.getRut() + ")").toLowerCase();
+						if (nombreRut.equals(texto)) {
+							return;
+						} else {
+							clienteSeleccionado = null;
+						}
+					}
 
-                        if (!filtrados.isEmpty()) {
-                            popupClientes.removeAll();
-                            for (Cliente c : filtrados) {
-                                JMenuItem item = new JMenuItem(c.getNombre() + " " + c.getApellido());
-                                item.addActionListener(e -> {
-                                    clienteSeleccionado = c;
-                                    txtCliente.setText(c.getNombre() + " " + c.getApellido());
-                                    popupClientes.setVisible(false);
-                                });
-                                popupClientes.add(item);
-                            }
-                            popupClientes.show(txtCliente, 0, txtCliente.getHeight());
-                        }
-                    }
-                });
-            }
-        });
+					popupClientes.setVisible(false);
 
-        txtCliente.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusLost(java.awt.event.FocusEvent e) {
-                SwingUtilities.invokeLater(() -> popupClientes.setVisible(false));
-            }
-        });
-    }
+					if (!texto.isEmpty()) {
+						List<Cliente> filtrados = new ArrayList<>();
+						for (Cliente c : clientesDisponiblesList) {
+							String datosCliente = (c.getNombre() + " " + c.getApellido() + " " + c.getRut() + " "
+									+ c.getTelefono() + " " + c.getEmail() + " " + c.getDireccion()).toLowerCase();
 
-    private void cargarClientes() {
-        try {
-            clientesDisponiblesList = clienteService.listar();
-        } catch (Exception ex) {
-            mostrarError(ex);
-        }
-    }
+							if (datosCliente.contains(texto)) {
+								filtrados.add(c);
+							}
+						}
 
-    private void cargarProductos() {
-        try {
-            productosDisponiblesList = productoService.listarConPrecioVenta();
-            mapaProductos.clear();
-            List<String> nombres = new ArrayList<>();
+						if (!filtrados.isEmpty()) {
+							popupClientes.removeAll();
+							for (Cliente c : filtrados) {
+								String label = c.getNombre() + " " + c.getApellido() + " (" + c.getRut() + ")";
+								JMenuItem item = new JMenuItem(label);
+								item.addActionListener(e -> {
+									clienteSeleccionado = c;
+									txtCliente.setText(label);
+									popupClientes.setVisible(false);
+								});
+								popupClientes.add(item);
+							}
+							popupClientes.show(txtCliente, 0, txtCliente.getHeight());
+						}
+					}
+				});
+			}
+		});
 
-            for (Producto p : productosDisponiblesList) {
-                BigDecimal precio = ventaService.obtenerPrecioProducto(p.getId());
-                String display = p.getNombre() + " ($" + nf.format(precio) + ")";
-                nombres.add(display);
-                mapaProductos.put(display, p);
-            }
+		txtCliente.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusLost(FocusEvent e) {
+				SwingUtilities.invokeLater(() -> popupClientes.setVisible(false));
+			}
+		});
+	}
 
-            panel.setProductosDisponibles(nombres);
-        } catch (Exception ex) {
-            mostrarError(ex);
-        }
-    }
+	private void cargarClientes() {
+		try {
+			clientesDisponiblesList = clienteService.listar();
+		} catch (Exception ex) {
+			mostrarError(ex);
+		}
+	}
 
-    private void agregarProductoAlDetalle() {
-        String seleccionado = panel.getListaProductos().getSelectedValue();
-        if (seleccionado == null) {
-            return;
-        }
+	private void cargarProductos() {
+		try {
+			productosDisponiblesList = productoService.listarConPrecioVenta();
+			mapaProductos.clear();
+			List<String> nombres = new ArrayList<>();
 
-        Producto producto = mapaProductos.get(seleccionado);
-        if (producto == null) {
-            return;
-        }
+			for (Producto p : productosDisponiblesList) {
+				String display = p.getNombre() + " ($" + nf.format(p.getPrecioVenta()) + ")";
+				nombres.add(display);
+				mapaProductos.put(display, p);
+			}
 
-        DefaultTableModel model = (DefaultTableModel) panel.getTablaDetalleVenta().getModel();
-        int stockDisponible;
-        try {
-            stockDisponible = ventaService.obtenerStockTotal(producto.getId());
-        } catch (Exception e) {
-            mostrarError(e);
-            return;
-        }
+			panel.setProductosDisponibles(nombres);
+		} catch (Exception ex) {
+			mostrarError(ex);
+		}
+	}
 
-        // Verificar si ya existe en la tabla
-        for (int i = 0; i < model.getRowCount(); i++) {
-            if ((int) model.getValueAt(i, 0) == producto.getId()) {
-                int cantidadActual = (int) model.getValueAt(i, 3);
-                if (cantidadActual < stockDisponible) {
-                    model.setValueAt(cantidadActual + 1, i, 3);
-                    calcularTotales();
-                } else {
-                    JOptionPane.showMessageDialog(panel,
-                            "No hay stock suficiente para agregar más de este producto.",
-                            "Stock insuficiente",
-                            JOptionPane.WARNING_MESSAGE);
-                }
-                return;
-            }
-        }
+	private void agregarProductoAlDetalle() {
+		String seleccionado = panel.getListaProductos().getSelectedValue();
+		if (seleccionado == null) {
+			return;
+		}
 
-        // Agregar nuevo producto si hay stock
-        if (stockDisponible > 0) {
-            try {
-                BigDecimal precio = ventaService.obtenerPrecioProducto(producto.getId());
-                model.addRow(new Object[]{
-                    producto.getId(),
-                    producto.getNombre(),
-                    precio,
-                    1,
-                    precio
-                });
-            } catch (Exception e) {
-                mostrarError(e);
-            }
-            calcularTotales();
-        } else {
-            JOptionPane.showMessageDialog(panel,
-                    "No hay stock disponible para este producto.",
-                    "Stock insuficiente",
-                    JOptionPane.WARNING_MESSAGE);
-        }
-    }
+		Producto producto = mapaProductos.get(seleccionado);
+		if (producto == null) {
+			return;
+		}
 
-    private void quitarProductoDelDetalle() {
-        int fila = panel.getTablaDetalleVenta().getSelectedRow();
-        if (fila >= 0) {
-            ((DefaultTableModel) panel.getTablaDetalleVenta().getModel()).removeRow(fila);
-            calcularTotales();
-        }
-    }
+		DefaultTableModel model = (DefaultTableModel) panel.getTablaDetalleVenta().getModel();
+		int stockDisponible;
+		try {
+			stockDisponible = ventaService.obtenerStockTotal(producto.getId());
+		} catch (Exception e) {
+			mostrarError(e);
+			return;
+		}
 
-    private void calcularTotales() {
-        if (actualizandoTotales) {
-            return;
-        }
-        actualizandoTotales = true;
+		for (int i = 0; i < model.getRowCount(); i++) {
+			if ((int) model.getValueAt(i, 0) == producto.getId()) {
+				int cantidadActual = (int) model.getValueAt(i, 3);
+				if (cantidadActual < stockDisponible) {
+					model.setValueAt(cantidadActual + 1, i, 3);
+					calcularTotales();
+				} else {
+					JOptionPane.showMessageDialog(panel, "No hay stock suficiente para agregar más de este producto.",
+							"Stock insuficiente", JOptionPane.WARNING_MESSAGE);
+				}
+				return;
+			}
+		}
 
-        DefaultTableModel model = (DefaultTableModel) panel.getTablaDetalleVenta().getModel();
-        List<DetalleVenta> detalles = new ArrayList<>();
+		if (stockDisponible > 0) {
+			try {
+				BigDecimal precio = ventaService.obtenerPrecioProducto(producto.getId());
+				model.addRow(new Object[] { producto.getId(), producto.getNombre(), precio, 1, precio });
+			} catch (Exception e) {
+				mostrarError(e);
+			}
+			calcularTotales();
+		} else {
+			JOptionPane.showMessageDialog(panel, "No hay stock disponible para este producto.", "Stock insuficiente",
+					JOptionPane.WARNING_MESSAGE);
+		}
+	}
 
-        for (int i = 0; i < model.getRowCount(); i++) {
-            DetalleVenta d = new DetalleVenta();
-            d.setIdProducto((int) model.getValueAt(i, 0));
-            d.setCantidad((int) model.getValueAt(i, 3));
-            detalles.add(d);
-        }
+	private void quitarProductoDelDetalle() {
+		int fila = panel.getTablaDetalleVenta().getSelectedRow();
+		if (fila >= 0) {
+			((DefaultTableModel) panel.getTablaDetalleVenta().getModel()).removeRow(fila);
+			calcularTotales();
+		}
+	}
 
-        try {
-            BigDecimal subtotal = ventaService.calcularSubtotalYValidarStock(detalles);
-            BigDecimal totalConIva = ventaService.aplicarIVA(subtotal);
+	private void calcularTotales() {
+		if (actualizandoTotales) {
+			return;
+		}
+		actualizandoTotales = true;
 
-            // Actualizar la tabla con los subtotales
-            for (int i = 0; i < model.getRowCount(); i++) {
-                model.setValueAt(detalles.get(i).getSubtotal(), i, 4);
-            }
+		DefaultTableModel model = (DefaultTableModel) panel.getTablaDetalleVenta().getModel();
+		List<DetalleVenta> detalles = new ArrayList<>();
 
-            panel.getLblSubtotal().setText("Subtotal: $" + nf.format(subtotal));
-            panel.getLblTotal().setText("Total + IVA: $" + nf.format(totalConIva));
+		for (int i = 0; i < model.getRowCount(); i++) {
+			DetalleVenta d = new DetalleVenta();
+			d.setIdProducto((int) model.getValueAt(i, 0));
+			d.setCantidad((int) model.getValueAt(i, 3));
+			detalles.add(d);
+		}
 
-        } catch (Exception ex) {
-            mostrarError(ex);
-        } finally {
-            actualizandoTotales = false;
-        }
-    }
+		try {
+			BigDecimal subtotal = ventaService.calcularSubtotalYValidarStock(detalles);
+			BigDecimal totalConIva = ventaService.aplicarIVA(subtotal);
 
-    private void guardarVenta() {
-        if (clienteSeleccionado == null) {
-            String texto = panel.getTxtCliente().getText().trim().toLowerCase();
-            for (Cliente c : clientesDisponiblesList) {
-                if ((c.getNombre() + " " + c.getApellido()).toLowerCase().equals(texto)) {
-                    clienteSeleccionado = c;
-                    break;
-                }
-            }
-        }
+			for (int i = 0; i < model.getRowCount(); i++) {
 
-        if (clienteSeleccionado == null) {
-            JOptionPane.showMessageDialog(panel, "Seleccione un cliente válido.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+				model.setValueAt(detalles.get(i).getSubtotal(), i, 4);
+			}
 
-        DefaultTableModel model = (DefaultTableModel) panel.getTablaDetalleVenta().getModel();
-        if (model.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(panel, "No hay productos en la venta.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+			panel.getLblSubtotal().setText("Subtotal: $" + nf.format(subtotal));
+			panel.getLblTotal().setText("Total + IVA: $" + nf.format(totalConIva));
 
-        Venta venta = new Venta();
-        venta.setIdCliente(clienteSeleccionado.getId());
-        venta.setFecha(new java.sql.Timestamp(System.currentTimeMillis()));
+		} catch (Exception ex) {
+			mostrarError(ex);
+		} finally {
+			actualizandoTotales = false;
+		}
+	}
 
-        List<DetalleVenta> detalles = new ArrayList<>();
-        for (int i = 0; i < model.getRowCount(); i++) {
-            DetalleVenta d = new DetalleVenta();
-            d.setIdProducto((int) model.getValueAt(i, 0));
-            d.setCantidad((int) model.getValueAt(i, 3));
-            detalles.add(d);
-        }
-        venta.setDetalleVentas(detalles);
+	private void guardarVenta() {
+		if (clienteSeleccionado == null) {
+			String texto = panel.getTxtCliente().getText().trim().toLowerCase();
+			for (Cliente c : clientesDisponiblesList) {
+				if ((c.getNombre() + " " + c.getApellido()).toLowerCase().equals(texto)) {
+					clienteSeleccionado = c;
+					break;
+				}
+			}
+		}
 
-        try {
-            int ventaId = ventaService.insertar(venta);
-            limpiarFormulario();
-            JOptionPane.showMessageDialog(panel, "Venta guardada correctamente. ID: " + ventaId);
-        } catch (Exception e) {
-            mostrarError(e);
-        }
-    }
+		if (clienteSeleccionado == null) {
+			JOptionPane.showMessageDialog(panel, "Seleccione un cliente válido.", "Error", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
 
-    private void limpiarFormulario() {
-        panel.getTxtCliente().setText("");
-        clienteSeleccionado = null;
-        DefaultTableModel model = (DefaultTableModel) panel.getTablaDetalleVenta().getModel();
-        model.setRowCount(0);
-        panel.getLblSubtotal().setText("Subtotal: $0,00");
-        panel.getLblTotal().setText("Total: $0,00");
-        // Recargar los productos disponibles
-        cargarProductos();
-    }
+		DefaultTableModel model = (DefaultTableModel) panel.getTablaDetalleVenta().getModel();
+		if (model.getRowCount() == 0) {
+			JOptionPane.showMessageDialog(panel, "No hay productos en la venta.", "Error", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
 
-    private void mostrarError(Exception ex) {
-        JOptionPane.showMessageDialog(panel, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-    }
+		Venta venta = new Venta();
+		venta.setIdCliente(clienteSeleccionado.getId());
+		venta.setFecha(new Timestamp(System.currentTimeMillis()));
 
-    private abstract static class SimpleDocumentListener implements javax.swing.event.DocumentListener {
+		List<DetalleVenta> detalles = new ArrayList<>();
+		for (int i = 0; i < model.getRowCount(); i++) {
+			DetalleVenta d = new DetalleVenta();
+			d.setIdProducto((int) model.getValueAt(i, 0));
+			d.setCantidad((int) model.getValueAt(i, 3));
+			BigDecimal precioUnitario = (BigDecimal) model.getValueAt(i, 2);
+			d.setPrecioUnitario(precioUnitario);
+			d.setSubtotal(precioUnitario.multiply(BigDecimal.valueOf(d.getCantidad())));
+			detalles.add(d);
+		}
 
-        public abstract void onChange();
+		venta.setDetalleVentas(detalles);
 
-        @Override
-        public void insertUpdate(javax.swing.event.DocumentEvent e) {
-            onChange();
-        }
+		try {
+			int ventaId = ventaService.insertar(venta);
 
-        @Override
-        public void removeUpdate(javax.swing.event.DocumentEvent e) {
-            onChange();
-        }
+			File carpeta = new File("facturas");
+			if (!carpeta.exists()) {
+				carpeta.mkdirs();
+			}
 
-        @Override
-        public void changedUpdate(javax.swing.event.DocumentEvent e) {
-            onChange();
-        }
-    }
+			String rutaPDF = "facturas/factura_" + ventaId + ".pdf";
 
-    public VentaPanel getVentaPanel() {
-        return panel;
-    }
+			try {
+				FacturaPDFGenerator.generarFactura(venta, clienteSeleccionado, rutaPDF);
+			} catch (Exception pdfEx) {
+				JOptionPane.showMessageDialog(panel,
+						"Venta guardada, pero ocurrió un error generando la factura PDF: " + pdfEx.getMessage(),
+						"Error PDF", JOptionPane.ERROR_MESSAGE);
+			}
+
+			limpiarFormulario();
+			JOptionPane.showMessageDialog(panel,
+					"Venta guardada correctamente. ID: " + ventaId + "\nFactura generada en: " + rutaPDF);
+
+		} catch (Exception e) {
+			mostrarError(e);
+		}
+	}
+
+	private void limpiarFormulario() {
+		panel.getTxtCliente().setText("");
+		clienteSeleccionado = null;
+		DefaultTableModel model = (DefaultTableModel) panel.getTablaDetalleVenta().getModel();
+		model.setRowCount(0);
+		panel.getLblSubtotal().setText("Subtotal: $0,00");
+		panel.getLblTotal().setText("Total: $0,00");
+		cargarProductos();
+	}
+
+	private void mostrarError(Exception ex) {
+		JOptionPane.showMessageDialog(panel, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+	}
+
+	private abstract static class SimpleDocumentListener implements javax.swing.event.DocumentListener {
+
+		public abstract void onChange();
+
+		@Override
+		public void insertUpdate(javax.swing.event.DocumentEvent e) {
+			onChange();
+		}
+
+		@Override
+		public void removeUpdate(javax.swing.event.DocumentEvent e) {
+			onChange();
+		}
+
+		@Override
+		public void changedUpdate(javax.swing.event.DocumentEvent e) {
+			onChange();
+		}
+	}
+
+	public VentaPanel getVentaPanel() {
+		return panel;
+	}
 }

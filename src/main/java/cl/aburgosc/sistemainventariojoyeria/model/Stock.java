@@ -1,11 +1,14 @@
 package cl.aburgosc.sistemainventariojoyeria.model;
 
+import java.sql.Timestamp;
+
 import cl.aburgosc.sistemainventariojoyeria.util.DBColumn;
 import cl.aburgosc.sistemainventariojoyeria.util.DBTable;
 
 /**
  *
  * @author aburgosc
+ * 
  */
 @DBTable(nombre = "stock")
 public class Stock extends ObjetoBase {
@@ -17,7 +20,7 @@ public class Stock extends ObjetoBase {
     private int cantidadDisponible;
 
     @DBColumn(nombre = "ultima_actualizacion")
-    private java.sql.Timestamp ultimaActualizacion;
+    private Timestamp ultimaActualizacion;
 
     public Stock() {
     }
@@ -39,11 +42,11 @@ public class Stock extends ObjetoBase {
         this.cantidadDisponible = cantidadDisponible;
     }
 
-    public java.sql.Timestamp getUltimaActualizacion() {
+    public Timestamp getUltimaActualizacion() {
         return ultimaActualizacion;
     }
 
-    public void setUltimaActualizacion(java.sql.Timestamp ultimaActualizacion) {
+    public void setUltimaActualizacion(Timestamp ultimaActualizacion) {
         this.ultimaActualizacion = ultimaActualizacion;
     }
 }

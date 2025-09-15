@@ -1,235 +1,219 @@
 package cl.aburgosc.sistemainventariojoyeria.controller;
 
-import cl.aburgosc.sistemainventariojoyeria.model.Cliente;
-import cl.aburgosc.sistemainventariojoyeria.model.Venta;
-import cl.aburgosc.sistemainventariojoyeria.service.ClienteService;
-import cl.aburgosc.sistemainventariojoyeria.service.VentaService;
-import cl.aburgosc.sistemainventariojoyeria.service.impl.ClienteServiceImpl;
-import cl.aburgosc.sistemainventariojoyeria.service.impl.VentaServiceImpl;
-import cl.aburgosc.sistemainventariojoyeria.ui.ClientePanel;
-
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 
+import javax.swing.JOptionPane;
+import javax.swing.RowFilter;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
+
+import cl.aburgosc.sistemainventariojoyeria.exception.ServiceException;
+import cl.aburgosc.sistemainventariojoyeria.model.Cliente;
+import cl.aburgosc.sistemainventariojoyeria.model.Venta;
+import cl.aburgosc.sistemainventariojoyeria.service.ClienteService;
+import cl.aburgosc.sistemainventariojoyeria.service.VentaService;
+import cl.aburgosc.sistemainventariojoyeria.service.impl.ClienteServiceImpl;
+import cl.aburgosc.sistemainventariojoyeria.service.impl.VentaServiceImpl;
+import cl.aburgosc.sistemainventariojoyeria.ui.dto.ClienteDTO;
+import cl.aburgosc.sistemainventariojoyeria.ui.panel.ClientePanel;
+import cl.aburgosc.sistemainventariojoyeria.ui.tablemodel.DynamicTableModel;
+
 public class ClienteController {
 
-    private final ClientePanel panel;
-    private final ClienteService clienteService;
-    private final VentaService ventaService;
-    private Cliente clienteSeleccionado;
-    private final NumberFormat nf;
+	private final ClientePanel panel;
+	private final ClienteService clienteService;
+	private final VentaService ventaService;
+	private Cliente clienteSeleccionado;
+	private final NumberFormat nf;
 
-    public ClienteController(ClientePanel panel) {
-        this.panel = panel;
-        this.clienteService = new ClienteServiceImpl();
-        this.ventaService = new VentaServiceImpl();
+	private DynamicTableModel<ClienteDTO> model;
+	private TableRowSorter<TableModel> sorter;
 
-        Locale cl = new Locale.Builder().setLanguage("es").setRegion("CL").build();
-        this.nf = NumberFormat.getNumberInstance(cl);
-        nf.setMinimumFractionDigits(2);
-        nf.setMaximumFractionDigits(2);
+	public ClienteController(ClientePanel panel) {
+		this.panel = panel;
+		this.clienteService = new ClienteServiceImpl();
+		this.ventaService = new VentaServiceImpl();
 
-        inicializar();
-    }
+		Locale cl = new Locale.Builder().setLanguage("es").setRegion("CL").build();
+		this.nf = NumberFormat.getNumberInstance(cl);
+		nf.setMinimumFractionDigits(2);
+		nf.setMaximumFractionDigits(2);
 
-    private void inicializar() {
-        cargarClientes();
+		inicializar();
+	}
 
-        // Botones
-        panel.getBtnAgregar().addActionListener(e -> {
-            if (clienteSeleccionado == null) {
-                agregarCliente();
-            } else {
-                guardarClienteSeleccionado();
-            }
-        });
-        panel.getBtnEliminar().addActionListener(e -> eliminarCliente());
-        panel.getBtnLimpiar().addActionListener(e -> limpiarFormulario());
-        panel.getBtnBuscar().addActionListener(e -> buscarCliente());
+	private void inicializar() {
+		inicializarTabla();
+		cargarTabla();
 
-        // Selección de cliente para mostrar sus ventas
-        panel.getTablaClientes().addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                int fila = panel.getTablaClientes().getSelectedRow();
-                if (fila >= 0) {
-                    Object valorId = panel.getTablaClientes().getValueAt(fila, 0);
-                    Integer idCliente = (valorId instanceof Number n) ? n.intValue() : null;
-                    cargarVentas(idCliente);
-                    cargarFormularioDesdeFila(fila, idCliente);
-                }
-            }
-        });
-    }
+		panel.getBtnAgregar().addActionListener(e -> {
+			if (clienteSeleccionado == null)
+				agregarCliente();
+			else
+				guardarClienteSeleccionado();
+		});
+		panel.getBtnEliminar().addActionListener(e -> eliminarCliente());
+		panel.getBtnLimpiar().addActionListener(e -> limpiarFormulario());
+		panel.getBtnBuscar().addActionListener(e -> aplicarFiltroBusqueda());
 
-    private void cargarClientes() {
-        try {
-            List<Cliente> clientes = clienteService.listar();
-            DefaultTableModel model = (DefaultTableModel) panel.getTablaClientes().getModel();
-            model.setRowCount(0);
+		panel.getTablaClientes().addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				int fila = panel.getTablaClientes().getSelectedRow();
+				if (fila >= 0) {
+					int filaModelo = panel.getTablaClientes().convertRowIndexToModel(fila);
+					Integer idCliente = (Integer) model.getValueAt(filaModelo, 0);
+					cargarVentas(idCliente);
+					try {
+						cargarFormularioDesdeFila(filaModelo);
+					} catch (ServiceException ex) {
+						mostrarError(ex);
+					}
+				}
+			}
+		});
+	}
 
-            for (Cliente c : clientes) {
-                model.addRow(new Object[]{c.getId(), c.getNombre(), c.getApellido(), c.getEmail(), c.getTelefono()});
-            }
-        } catch (Exception ex) {
-            mostrarError(ex);
-        }
-    }
+	private void inicializarTabla() {
+		model = new DynamicTableModel<>(ClienteDTO.class, List.of());
+		panel.getTablaClientes().setModel(model);
+		panel.getTablaClientes().setDefaultRenderer(Object.class, model.getRenderer());
+		sorter = new TableRowSorter<>(model);
+		panel.getTablaClientes().setRowSorter(sorter);
+	}
 
-    private void cargarVentas(int idCliente) {
-        try {
-            List<Venta> ventas = ventaService.obtenerPorCliente(idCliente);
-            DefaultTableModel model = (DefaultTableModel) panel.getTablaVentas().getModel();
-            model.setRowCount(0);
+	private void cargarTabla() {
+		try {
+			List<ClienteDTO> clientes = clienteService.listarClienteDTO();
+			model.setData(clientes);
+			model.fireTableDataChanged();
+		} catch (Exception ex) {
+			mostrarError(ex);
+		}
+	}
 
-            for (Venta v : ventas) {
-                model.addRow(new Object[]{
-                    v.getId(),
-                    v.getFecha(),
-                    "$" + nf.format(v.getTotal())
-                });
-            }
-        } catch (Exception ex) {
-            mostrarError(ex);
-        }
-    }
+	private void agregarCliente() {
+		try {
 
-    private void agregarCliente() {
-        try {
-            Cliente c = new Cliente();
-            c.setNombre(panel.getTxtNombre().getText());
-            c.setApellido(panel.getTxtApellido().getText());
-            c.setEmail(panel.getTxtEmail().getText());
-            c.setTelefono(panel.getTxtTelefono().getText());
-            clienteService.insertar(c);
-            cargarClientes();
-            limpiarFormulario();
-        } catch (Exception ex) {
-            mostrarError(ex);
-        }
-    }
+			Cliente c = new Cliente();
+			c.setRut(panel.getTxtRut().getText());
+			c.setNombre(panel.getTxtNombre().getText());
+			c.setApellido(panel.getTxtApellido().getText());
+			c.setEmail(panel.getTxtEmail().getText());
+			c.setTelefono(panel.getTxtTelefono().getText());
 
-    private void editarCliente() {
-        try {
-            int fila = panel.getTablaClientes().getSelectedRow();
-            if (fila >= 0) {
-                Integer id = (Integer) panel.getTablaClientes().getValueAt(fila, 0);
-                Cliente c = clienteService.obtenerPorId(id);
+			clienteService.insertar(c);
+			cargarTabla();
+			limpiarFormulario();
+		} catch (Exception ex) {
+			mostrarError(ex);
+		}
+	}
 
-                c.setNombre(panel.getTxtNombre().getText());
-                c.setApellido(panel.getTxtApellido().getText());
-                c.setEmail(panel.getTxtEmail().getText());
-                c.setTelefono(panel.getTxtTelefono().getText());
+	private void guardarClienteSeleccionado() {
+		if (clienteSeleccionado == null)
+			return;
 
-                clienteService.actualizar(c);
-                cargarClientes();
-            }
-        } catch (Exception ex) {
-            mostrarError(ex);
-        }
-    }
+		int confirm = JOptionPane.showConfirmDialog(panel, "¿Estás seguro de guardar los cambios de este cliente?",
+				"Confirmar cambios", JOptionPane.YES_NO_OPTION);
 
-    private void eliminarCliente() {
-        int fila = panel.getTablaClientes().getSelectedRow();
-        if (fila >= 0) {
-            int confirm = JOptionPane.showConfirmDialog(
-                    panel,
-                    "¿Estás seguro de eliminar este cliente?",
-                    "Confirmar eliminación",
-                    JOptionPane.YES_NO_OPTION
-            );
-            if (confirm == JOptionPane.YES_OPTION) {
-                try {
-                    Integer id = (Integer) panel.getTablaClientes().getValueAt(fila, 0);
-                    clienteService.eliminar(id);
-                    cargarClientes();
-                    limpiarFormulario();
-                } catch (Exception ex) {
-                    mostrarError(ex);
-                }
-            }
-        }
-    }
+		if (confirm == JOptionPane.YES_OPTION) {
+			try {
+				clienteSeleccionado.setRut(panel.getTxtRut().getText());
+				clienteSeleccionado.setNombre(panel.getTxtNombre().getText());
+				clienteSeleccionado.setApellido(panel.getTxtApellido().getText());
+				clienteSeleccionado.setEmail(panel.getTxtEmail().getText());
+				clienteSeleccionado.setTelefono(panel.getTxtTelefono().getText());
 
-    private void buscarCliente() {
-        try {
-            String textoBusqueda = panel.getTxtBuscar().getText();
-            List<Cliente> clientes = clienteService.buscarCliente(textoBusqueda);
+				clienteService.actualizar(clienteSeleccionado);
+				limpiarFormulario();
+				cargarTabla();
+			} catch (Exception ex) {
+				mostrarError(ex);
+			}
+		}
+	}
 
-            DefaultTableModel model = (DefaultTableModel) panel.getTablaClientes().getModel();
-            model.setRowCount(0);
-            for (Cliente c : clientes) {
-                model.addRow(new Object[]{c.getId(), c.getNombre(), c.getApellido(), c.getEmail(), c.getTelefono()});
-            }
-        } catch (Exception ex) {
-            mostrarError(ex);
-        }
-    }
+	private void eliminarCliente() {
+		int fila = panel.getTablaClientes().getSelectedRow();
+		if (fila < 0)
+			return;
 
-    private void limpiarFormulario() {
-        panel.getTxtNombre().setText("");
-        panel.getTxtApellido().setText("");
-        panel.getTxtEmail().setText("");
-        panel.getTxtTelefono().setText("");
-        panel.getTxtBuscar().setText("");
-        panel.getBtnAgregar().setText("Agregar");
-        clienteSeleccionado = null;
-        DefaultTableModel modelVentas = (DefaultTableModel) panel.getTablaVentas().getModel();
-        modelVentas.setRowCount(0);
-    }
+		int filaModelo = panel.getTablaClientes().convertRowIndexToModel(fila);
+		Integer id = (Integer) model.getValueAt(filaModelo, 0);
 
-    private void cargarFormularioDesdeFila(int fila, Integer idCliente) {
-        panel.getTxtNombre().setText((String) panel.getTablaClientes().getValueAt(fila, 1));
-        panel.getTxtApellido().setText((String) panel.getTablaClientes().getValueAt(fila, 2));
-        panel.getTxtEmail().setText((String) panel.getTablaClientes().getValueAt(fila, 3));
-        panel.getTxtTelefono().setText((String) panel.getTablaClientes().getValueAt(fila, 4));
-        panel.getBtnAgregar().setText("Guardar");
+		int confirm = JOptionPane.showConfirmDialog(panel, "¿Estás seguro de eliminar este cliente?",
+				"Confirmar eliminación", JOptionPane.YES_NO_OPTION);
 
-        try {
-            clienteSeleccionado = clienteService.obtenerPorId(idCliente);
-        } catch (Exception ex) {
-            mostrarError(ex);
-        }
-    }
+		if (confirm == JOptionPane.YES_OPTION) {
+			try {
+				clienteService.eliminar(id);
+				cargarTabla();
+				limpiarFormulario();
+			} catch (Exception ex) {
+				mostrarError(ex);
+			}
+		}
+	}
 
-    private void guardarClienteSeleccionado() {
-        if (clienteSeleccionado == null) {
-            return;
-        }
+	private void aplicarFiltroBusqueda() {
+		String texto = panel.getTxtBuscar().getText().trim();
+		if (texto.isEmpty()) {
+			sorter.setRowFilter(null);
+		} else {
+			sorter.setRowFilter(RowFilter.regexFilter("(?i)" + texto));
+		}
+	}
 
-        int confirm = JOptionPane.showConfirmDialog(
-                panel,
-                "¿Estás seguro de guardar los cambios de este cliente?",
-                "Confirmar cambios",
-                JOptionPane.YES_NO_OPTION
-        );
+	private void cargarVentas(int idCliente) {
+		try {
+			List<Venta> ventas = ventaService.obtenerPorCliente(idCliente);
+			var modelVentas = panel.getTablaVentas().getModel();
+			if (modelVentas instanceof javax.swing.table.DefaultTableModel dtm) {
+				dtm.setRowCount(0);
+				for (Venta v : ventas) {
+					dtm.addRow(new Object[] { v.getId(), v.getFecha(), "$" + nf.format(v.getTotal()) });
+				}
+			}
+		} catch (Exception ex) {
+			mostrarError(ex);
+		}
+	}
 
-        if (confirm == JOptionPane.YES_OPTION) {
-            try {
-                clienteSeleccionado.setNombre(panel.getTxtNombre().getText());
-                clienteSeleccionado.setApellido(panel.getTxtApellido().getText());
-                clienteSeleccionado.setEmail(panel.getTxtEmail().getText());
-                clienteSeleccionado.setTelefono(panel.getTxtTelefono().getText());
+	private void limpiarFormulario() {
+		panel.getTxtRut().setText("");
+		panel.getTxtNombre().setText("");
+		panel.getTxtApellido().setText("");
+		panel.getTxtEmail().setText("");
+		panel.getTxtTelefono().setText("");
+		panel.getTxtBuscar().setText("");
+		panel.getBtnAgregar().setText("Agregar");
+		clienteSeleccionado = null;
 
-                clienteService.actualizar(clienteSeleccionado);
-                limpiarFormulario();
-                cargarClientes();
-            } catch (Exception ex) {
-                mostrarError(ex);
-            }
-        }
-    }
+		var modelVentas = panel.getTablaVentas().getModel();
+		if (modelVentas instanceof javax.swing.table.DefaultTableModel dtm)
+			dtm.setRowCount(0);
+	}
 
-    private void mostrarError(Exception ex) {
-        JOptionPane.showMessageDialog(panel, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-    }
+	private void cargarFormularioDesdeFila(int filaModelo) throws ServiceException {
+		clienteSeleccionado = clienteService.obtenerPorId((Integer) model.getValueAt(filaModelo, 0));
+		panel.getTxtRut().setText((String) model.getValueAt(filaModelo, 1));
+		panel.getTxtNombre().setText((String) model.getValueAt(filaModelo, 2));
+		panel.getTxtApellido().setText((String) model.getValueAt(filaModelo, 3));
+		panel.getTxtEmail().setText((String) model.getValueAt(filaModelo, 4));
+		panel.getTxtTelefono().setText((String) model.getValueAt(filaModelo, 5));
+		panel.getBtnAgregar().setText("Guardar");
+	}
 
-    public ClientePanel getClientePanel() {
-        return panel;
-    }
+	private void mostrarError(Exception ex) {
+		JOptionPane.showMessageDialog(panel, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+	}
+
+	public ClientePanel getClientePanel() {
+		return panel;
+	}
 }

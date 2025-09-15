@@ -1,6 +1,8 @@
 package cl.aburgosc.sistemainventariojoyeria.dao;
 
 import cl.aburgosc.sistemainventariojoyeria.model.Venta;
+
+import java.sql.Connection;
 import java.util.List;
 
 /**

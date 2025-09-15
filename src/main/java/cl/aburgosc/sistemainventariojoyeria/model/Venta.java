@@ -1,19 +1,17 @@
 package cl.aburgosc.sistemainventariojoyeria.model;
 
-import cl.aburgosc.sistemainventariojoyeria.util.DBColumn;
-import cl.aburgosc.sistemainventariojoyeria.util.DBTable;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.List;
 
-/**
- *
- * @author aburgosc
- */
+import cl.aburgosc.sistemainventariojoyeria.util.DBColumn;
+import cl.aburgosc.sistemainventariojoyeria.util.DBTable;
+
 @DBTable(nombre = "venta")
 public class Venta extends ObjetoBase {
 
     @DBColumn(nombre = "fecha")
-    private java.sql.Timestamp fecha;
+    private Timestamp fecha;
 
     @DBColumn(nombre = "id_cliente")
     private Integer idCliente;
@@ -23,38 +21,22 @@ public class Venta extends ObjetoBase {
 
     private transient List<DetalleVenta> detalleVentas;
 
-    public Venta() {
-    }
+    public Venta() {}
 
-    public java.sql.Timestamp getFecha() {
-        return fecha;
-    }
+    public Timestamp getFecha() { return fecha; }
+    public void setFecha(Timestamp fecha) { this.fecha = fecha; }
 
-    public void setFecha(java.sql.Timestamp fecha) {
-        this.fecha = fecha;
-    }
+    public Integer getIdCliente() { return idCliente; }
+    public void setIdCliente(Integer idCliente) { this.idCliente = idCliente; }
 
-    public Integer getIdCliente() {
-        return idCliente;
-    }
+    public BigDecimal getTotal() { return total; }
+    public void setTotal(BigDecimal total) { this.total = total; }
 
-    public void setIdCliente(Integer idCliente) {
-        this.idCliente = idCliente;
-    }
+    public List<DetalleVenta> getDetalleVentas() { return detalleVentas; }
+    public void setDetalleVentas(List<DetalleVenta> detalleVentas) { this.detalleVentas = detalleVentas; }
 
-    public BigDecimal getTotal() {
-        return total;
-    }
-
-    public void setTotal(BigDecimal total) {
-        this.total = total;
-    }
-
-    public List<DetalleVenta> getDetalleVentas() {
-        return detalleVentas;
-    }
-
-    public void setDetalleVentas(List<DetalleVenta> detalleVentas) {
-        this.detalleVentas = detalleVentas;
+    public BigDecimal calcularTotal() {
+        if (detalleVentas == null) return BigDecimal.ZERO;
+        return detalleVentas.stream().map(DetalleVenta::getSubtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

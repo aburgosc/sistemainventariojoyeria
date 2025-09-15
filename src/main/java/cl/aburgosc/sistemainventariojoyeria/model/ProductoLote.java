@@ -1,8 +1,10 @@
 package cl.aburgosc.sistemainventariojoyeria.model;
 
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
 import cl.aburgosc.sistemainventariojoyeria.util.DBColumn;
 import cl.aburgosc.sistemainventariojoyeria.util.DBTable;
-import java.math.BigDecimal;
 
 /**
  *
@@ -24,7 +26,7 @@ public class ProductoLote extends ObjetoBase {
     private int cantidad;
 
     @DBColumn(nombre = "fecha_ingreso")
-    private java.sql.Timestamp fechaIngreso;
+    private Timestamp fechaIngreso;
 
     @DBColumn(nombre = "artesano")
     private String artesano;
@@ -64,11 +66,11 @@ public class ProductoLote extends ObjetoBase {
         this.cantidad = cantidad;
     }
 
-    public java.sql.Timestamp getFechaIngreso() {
+    public Timestamp getFechaIngreso() {
         return fechaIngreso;
     }
 
-    public void setFechaIngreso(java.sql.Timestamp fechaIngreso) {
+    public void setFechaIngreso(Timestamp fechaIngreso) {
         this.fechaIngreso = fechaIngreso;
     }
 

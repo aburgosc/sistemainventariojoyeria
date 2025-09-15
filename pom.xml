@@ -8,6 +8,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
+           <itext.version>9.3.0</itext.version>
+
     </properties>
     <dependencies>
         <!-- PostgreSQL JDBC -->
@@ -23,8 +25,18 @@
             <artifactId>HikariCP</artifactId>
             <version>5.0.1</version>
         </dependency>
-
-        <!-- JUnit para pruebas (opcional) -->
+        
+		 <dependency>
+	        <groupId>com.itextpdf</groupId>
+	        <artifactId>itext-core</artifactId>
+	        <version>${itext.version}</version>
+	        <type>pom</type>
+	     </dependency>
+		<dependency>
+	        <groupId>com.itextpdf</groupId>
+	        <artifactId>bouncy-castle-adapter</artifactId>
+	        <version>${itext.version}</version>
+	    </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>

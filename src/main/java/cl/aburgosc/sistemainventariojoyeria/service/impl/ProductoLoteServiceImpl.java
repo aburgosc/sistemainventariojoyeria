@@ -1,5 +1,10 @@
 package cl.aburgosc.sistemainventariojoyeria.service.impl;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.sql.Timestamp;
+import java.util.List;
+
 import cl.aburgosc.sistemainventariojoyeria.dao.ProductoLoteDAO;
 import cl.aburgosc.sistemainventariojoyeria.dao.impl.ProductoLoteDAOImpl;
 import cl.aburgosc.sistemainventariojoyeria.exception.ServiceException;
@@ -7,10 +12,6 @@ import cl.aburgosc.sistemainventariojoyeria.model.MovimientoStock;
 import cl.aburgosc.sistemainventariojoyeria.model.ProductoLote;
 import cl.aburgosc.sistemainventariojoyeria.model.Stock;
 import cl.aburgosc.sistemainventariojoyeria.service.ProductoLoteService;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
 
 /**
  * Servicio para manejo de lotes de productos con stock y movimientos.
@@ -42,7 +43,7 @@ public class ProductoLoteServiceImpl extends BaseServiceImpl<ProductoLote> imple
             Stock stock = new Stock();
             stock.setIdLote(lote.getId());
             stock.setCantidadDisponible(lote.getCantidad());
-            stock.setUltimaActualizacion(new java.sql.Timestamp(System.currentTimeMillis()));
+            stock.setUltimaActualizacion(new Timestamp(System.currentTimeMillis()));
             stockService.insertar(stock);
 
             // Registrar movimiento de ingreso
@@ -50,7 +51,7 @@ public class ProductoLoteServiceImpl extends BaseServiceImpl<ProductoLote> imple
             movimiento.setIdLote(lote.getId());
             movimiento.setCantidad(lote.getCantidad());
             movimiento.setTipoMovimiento("INGRESO");
-            movimiento.setFecha(new java.sql.Timestamp(System.currentTimeMillis()));
+            movimiento.setFecha(new Timestamp(System.currentTimeMillis()));
             movimiento.setReferencia("Ingreso de nuevo lote");
             movimientoService.insertar(movimiento);
 
@@ -88,7 +89,7 @@ public class ProductoLoteServiceImpl extends BaseServiceImpl<ProductoLote> imple
             throw new Exception("Debe indicarse el artesano responsable");
         }
         if (lote.getFechaIngreso() == null) {
-            lote.setFechaIngreso(new java.sql.Timestamp(System.currentTimeMillis()));
+            lote.setFechaIngreso(new Timestamp(System.currentTimeMillis()));
         }
     }
 
@@ -143,16 +144,15 @@ public class ProductoLoteServiceImpl extends BaseServiceImpl<ProductoLote> imple
             int cantidadAReservar = Math.min(stockDisponible, cantidadSolicitada);
             stockService.descontarStock(lote.getId(), cantidadAReservar);
 
-            // Registrar movimiento
             MovimientoStock mov = new MovimientoStock();
             mov.setIdLote(lote.getId());
             mov.setCantidad(cantidadAReservar);
             mov.setTipoMovimiento("SALIDA");
-            mov.setFecha(new java.sql.Timestamp(System.currentTimeMillis()));
+            mov.setFecha(new Timestamp(System.currentTimeMillis()));
             mov.setReferencia("Reserva stock para venta");
             movimientoService.insertar(mov);
 
-            return lote; // retorna el lote que cubre la reserva (FIFO)
+            return lote; 
         }
 
         throw new Exception("No hay stock suficiente para producto ID: " + idProducto);
@@ -177,7 +177,7 @@ public class ProductoLoteServiceImpl extends BaseServiceImpl<ProductoLote> imple
             mov.setIdLote(lote.getId());
             mov.setCantidad(aVender);
             mov.setTipoMovimiento("SALIDA");
-            mov.setFecha(new java.sql.Timestamp(System.currentTimeMillis()));
+            mov.setFecha(new Timestamp(System.currentTimeMillis()));
             mov.setReferencia("Venta ID: " + idVenta);
             movimientoService.insertar(mov);
 
@@ -191,6 +191,6 @@ public class ProductoLoteServiceImpl extends BaseServiceImpl<ProductoLote> imple
             throw new Exception("No hay stock suficiente para producto ID: " + idProducto);
         }
 
-        return lotes.get(0); // retorna el primer lote vendido (para referencia)
+        return lotes.get(0);
     }
 }
